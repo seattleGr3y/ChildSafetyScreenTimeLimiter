@@ -463,32 +463,24 @@ Function New-WPFMessageBox {
     END OF MESSAGE BOX FUNCTION
 #>
 
-<#
-    CUSTOM VARIABLES TO SET TIMES AND FILE LOCATIONS OR OTHER RELATED REQUIREMENTS
-#>
-$workingDir = "$($env:APPDATA)\custom\LIMITER" # '$home\Desktop\mAP-fIX'
-
 # THIS WILL COPY THE FILES NEEDED TO EXECUTE INTO AN APPDATA DIRECTORY TO BE THEN EXECUTED VIA SCHEDULED TASKS FOR REBOOTS FROM THE REGISTRY RUN KEY
+$workingDir = "$($env:APPDATA)\custom\LIMITER"
 if (!(Test-Path($workingDir))) {
     New-Item -Path $env:APPDATA -ItemType Directory -Name "custom\LIMITER"
     Copy-Item -Path "C:\Users\s4tAnonymous\source\repos\ChildSafetyScreenTimeLimiter\ChildSafetyScreenTimeLimiter.cmd", "C:\Users\s4tAnonymous\source\repos\ChildSafetyScreenTimeLimiter\ChildSafetyScreenTimeLimiter.ps1", `
         "C:\Users\s4tAnonymous\source\repos\ChildSafetyScreenTimeLimiter\WAKEUP-MESSAGE.txt" -Destination $workingDir
-
 }
 
 $wakeUpMessageFileLocation = "$($workingDir)\WAKEUP-MESSAGE.txt"
-# $scriptName = "ChildSafetyScreenTimeLimiter.ps1"
 $regRunAddFullPath = "Computer\HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Run"
 $Name = "LimiterScript"
 # EXAMPLE OF VALUE
 $runthis = "$($workingDir)\ChildSafetyScreenTimeLimiter.cmd"
 IF(!(Test-Path $regRunAddFullPath)) {
     New-Item -Path $regRunAddFullPath -Force | Out-Null
-    New-ItemProperty -Path $regRunAddFullPath -Name $Name -Value $runthis -PropertyType DWORD -Force | Out-Null
 }
- else {
-    New-ItemProperty -Path $regRunAddFullPath -Name $Name -Value $runthis -PropertyType DWORD -Force | Out-Null
-}
+
+New-ItemProperty -Path $regRunAddFullPath -Name $Name -Value $runthis -PropertyType DWORD -Force | Out-Null
 
 <# 
     CUSTOM VARIABLES START HERE 
