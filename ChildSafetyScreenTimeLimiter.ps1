@@ -454,6 +454,27 @@ Function New-WPFMessageBox {
     }
 }
 
+<#
+    CUSTOM VARIABLES TO SET TIMES AND FILE LOCATIONS OR OTHER RELATED REQUIREMENTS
+#>
+$workingDir = "$($env:APPDATA)\custom\LIMITER" # '$home\Desktop\mAP-fIX'
+$wakeUpMessageFileLocation = "$($workingDir)\WAKEUP-MESSAGE.txt"
+# $scriptName = "ChildSafetyScreenTimeLimiter.ps1"
+$regRunAddFullPath = "Computer\HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Run"
+$Name = "LimiterScript"
+# EXAMPLE OF VALUE
+$runthis = "$($workingDir)\ChildSafetyScreenTimeLimiter.cmd"
+IF(!(Test-Path $regRunAddFullPath)) {
+    New-Item -Path $regRunAddFullPath -Force | Out-Null
+    New-ItemProperty -Path $regRunAddFullPath -Name $Name -Value $runthis -PropertyType DWORD -Force | Out-Null
+}
+ else {
+    New-ItemProperty -Path $regRunAddFullPath -Name $Name -Value $runthis -PropertyType DWORD -Force | Out-Null
+}
+
+<# 
+    CUSTOM VARIABLES START HERE 
+#>
 [int]$messageBoxTimeout = 30
 [int]$lengthBreakTimeDefault = 2
 [int]$lengthTimeTillNextBreakStarts = 4
@@ -463,6 +484,9 @@ Function New-WPFMessageBox {
 [datetime]$actualWakeTime = $timeNow.AddHours($lengthBreakTimeDefault)
 [datetime]$wakeTime = $timeNow.AddHours($lengthBreakTimeDefault)
 [datetime]$breakTimeStarts = $timeNow.AddHours($lengthTimeTillNextBreakStarts)
+<# 
+    CUSTOM VARIABLES END HERE 
+#>
 
 # CREATE TASK THAT WILL OPEN NOTEPAD FILE BUT THIS IS MOSTLY DONE TO FORCE THE PC TO WAKE FROM SUSPEND STATE
 if ($null -ne (Get-ScheduledTask -TaskName "WakeUpTask" -ErrorAction SilentlyContinue)) {
@@ -483,14 +507,14 @@ else {
     $actualWakeTime = $timeNow.AddHours($lengthBreakTimeDefault)
 }
 # CREATE SCHEDULED TASK TO OPEN TEXT FILE AS A MESSAGE USING THAT BASICALLY AS THE EXCUSE TO USE THE SCHEDULED TASK TO WAKE THE PC FROM SUSPEND STATE
-$action = New-ScheduledTaskAction -Execute 'notepad.exe' -Argument '$home\Desktop\mAP-fIX\WAKEUP-MESSAGE.txt'
+$action = New-ScheduledTaskAction -Execute 'notepad.exe' -Argument $wakeUpMessageFileLocation
 $trigger = New-ScheduledTaskTrigger -At $actualWakeTime
 $principal = New-ScheduledTaskPrincipal -UserID "NT AUTHORITY\SYSTEM" -LogonType ServiceAccount -RunLevel Highest
 $settings = New-ScheduledTaskSettingsSet -WakeToRun
 Register-ScheduledTask -TaskName "WakeUpTask" -Action $action -Trigger $trigger -Settings $settings -Principal $principal    
 
 $taskTrigger = New-ScheduledTaskTrigger -At $breakTimeStarts
-$taskAction = New-ScheduledTaskAction -Execute "PowerShell" -Argument "-NoProfile -ExecutionPolicy Bypass -File 'ChildSafetyScreenTimeLimiter.ps1'" -WorkingDirectory '$home\Desktop\mAP-fIX'
+$taskAction = New-ScheduledTaskAction -Execute $runthis -WorkingDirectory $workingDir
 Register-ScheduledTask 'breakTimeStartsTask' -Action $taskAction -Trigger $taskTrigger
 
 try {
