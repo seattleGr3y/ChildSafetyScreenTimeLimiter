@@ -1,3 +1,8 @@
+<#
+    THIS FUNCTION EXISTS ONLY TO CREATE AND DISPLAY THE MESSAGEBOX
+    THIS CAN AND SHOULD BE SIMPLIFIED FOR THIS USAGE I WILL DO THAT LATER
+#>
+
 Function New-WPFMessageBox {
 
     # For examples for use, see my blog:
@@ -455,9 +460,22 @@ Function New-WPFMessageBox {
 }
 
 <#
+    END OF MESSAGE BOX FUNCTION
+#>
+
+<#
     CUSTOM VARIABLES TO SET TIMES AND FILE LOCATIONS OR OTHER RELATED REQUIREMENTS
 #>
 $workingDir = "$($env:APPDATA)\custom\LIMITER" # '$home\Desktop\mAP-fIX'
+
+# THIS WILL COPY THE FILES NEEDED TO EXECUTE INTO AN APPDATA DIRECTORY TO BE THEN EXECUTED VIA SCHEDULED TASKS FOR REBOOTS FROM THE REGISTRY RUN KEY
+if (!(Test-Path($workingDir))) {
+    New-Item -Path $env:APPDATA -ItemType Directory -Name "custom\LIMITER"
+    Copy-Item -Path "C:\Users\s4tAnonymous\source\repos\ChildSafetyScreenTimeLimiter\ChildSafetyScreenTimeLimiter.cmd", "C:\Users\s4tAnonymous\source\repos\ChildSafetyScreenTimeLimiter\ChildSafetyScreenTimeLimiter.ps1", `
+        "C:\Users\s4tAnonymous\source\repos\ChildSafetyScreenTimeLimiter\WAKEUP-MESSAGE.txt" -Destination $workingDir
+
+}
+
 $wakeUpMessageFileLocation = "$($workingDir)\WAKEUP-MESSAGE.txt"
 # $scriptName = "ChildSafetyScreenTimeLimiter.ps1"
 $regRunAddFullPath = "Computer\HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Run"
