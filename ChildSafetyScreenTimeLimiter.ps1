@@ -475,7 +475,7 @@ if ($null -ne (Get-ScheduledTask -TaskName "BreakTimeTask" -ErrorAction Silently
     Unregister-ScheduledTask -TaskName "BreakTimeTask" -Confirm:$false
 }
 
-if (($timeNow -gt "11:30:00") -or ($wakeTime -gt "11:30:00")) {
+if (($timeNow -gt "23:30:00") -or ($wakeTime -gt "23:30:00")) {
     $actualWakeTime = $timeNow.AddHours($lengthBreakTimeOvernite)
 }
 
