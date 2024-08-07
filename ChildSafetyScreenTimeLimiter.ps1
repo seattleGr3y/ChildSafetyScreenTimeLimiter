@@ -23,15 +23,6 @@ Function New-WPFMessageBox {
         [Parameter(Mandatory = $false, Position = 1)]
         [string]$Title,
 
-        # The buttons to add
-        [Parameter(Mandatory = $false, Position = 2)]
-        [ValidateSet('OK', 'OK-Cancel', 'Abort-Retry-Ignore', 'Yes-No-Cancel', 'Yes-No', 'Retry-Cancel', 'Cancel-TryAgain-Continue', 'None')]
-        [array]$ButtonType = 'OK',
-
-        # The buttons to add
-        [Parameter(Mandatory = $false, Position = 3)]
-        [array]$CustomButtons,
-
         # Content font size
         [Parameter(Mandatory = $false, Position = 4)]
         [int]$ContentFontSize = 14,
@@ -85,7 +76,7 @@ Function New-WPFMessageBox {
         $AttributeCollection = New-Object System.Collections.ObjectModel.Collection[System.Attribute]
         $ParameterAttribute = New-Object System.Management.Automation.ParameterAttribute
         $ParameterAttribute.Mandatory = $False
-        $AttributeCollection.Add($ParameterAttribute) 
+        $AttributeCollection.Add($ParameterAttribute)
         $RuntimeParameterDictionary = New-Object System.Management.Automation.RuntimeDefinedParameterDictionary
         $arrSet = [System.Drawing.Brushes] | Get-Member -Static -MemberType Property | Select-Object -ExpandProperty Name 
         $ValidateSetAttribute = New-Object System.Management.Automation.ValidateSetAttribute($arrSet)    
@@ -188,32 +179,6 @@ Function New-WPFMessageBox {
         $RuntimeParameter = New-Object System.Management.Automation.RuntimeDefinedParameter($TitleBackground, [string], $AttributeCollection)
         $RuntimeParameterDictionary.Add($TitleBackground, $RuntimeParameter)
 
-        # ButtonTextForeground
-        $ButtonTextForeground = 'ButtonTextForeground'
-        $AttributeCollection = New-Object System.Collections.ObjectModel.Collection[System.Attribute]
-        $ParameterAttribute = New-Object System.Management.Automation.ParameterAttribute
-        $ParameterAttribute.Mandatory = $False
-        $AttributeCollection.Add($ParameterAttribute) 
-        $arrSet = [System.Drawing.Brushes] | Get-Member -Static -MemberType Property | Select-Object -ExpandProperty Name 
-        $ValidateSetAttribute = New-Object System.Management.Automation.ValidateSetAttribute($arrSet)    
-        $AttributeCollection.Add($ValidateSetAttribute)
-        $PSBoundParameters.ButtonTextForeground = "Black"
-        $RuntimeParameter = New-Object System.Management.Automation.RuntimeDefinedParameter($ButtonTextForeground, [string], $AttributeCollection)
-        $RuntimeParameterDictionary.Add($ButtonTextForeground, $RuntimeParameter)
-
-        # Sound
-        $Sound = 'Sound'
-        $AttributeCollection = New-Object System.Collections.ObjectModel.Collection[System.Attribute]
-        $ParameterAttribute = New-Object System.Management.Automation.ParameterAttribute
-        $ParameterAttribute.Mandatory = $False
-        #$ParameterAttribute.Position = 14
-        $AttributeCollection.Add($ParameterAttribute) 
-        $arrSet = (Get-ChildItem "$env:SystemDrive\Windows\Media" -Filter Windows* | Select-Object -ExpandProperty Name).Replace('.wav', '')
-        $ValidateSetAttribute = New-Object System.Management.Automation.ValidateSetAttribute($arrSet)    
-        $AttributeCollection.Add($ValidateSetAttribute)
-        $RuntimeParameter = New-Object System.Management.Automation.RuntimeDefinedParameter($Sound, [string], $AttributeCollection)
-        $RuntimeParameterDictionary.Add($Sound, $RuntimeParameter)
-
         return $RuntimeParameterDictionary
     }
 
@@ -229,21 +194,6 @@ Function New-WPFMessageBox {
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Name="Window" Title="" SizeToContent="WidthAndHeight" WindowStartupLocation="CenterScreen" WindowStyle="None" ResizeMode="NoResize" AllowsTransparency="True" Background="Transparent" Opacity="1">
-    <Window.Resources>
-        <Style TargetType="{x:Type Button}">
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border>
-                            <Grid Background="{TemplateBinding Background}">
-                                <ContentPresenter />
-                            </Grid>
-                        </Border>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-    </Window.Resources>
     <Border x:Name="MainBorder" Margin="10" CornerRadius="$CornerRadius" BorderThickness="$BorderThickness" BorderBrush="$($PSBoundParameters.BorderBrush)" Padding="0" >
         <Border.Effect>
             <DropShadowEffect x:Name="DSE" Color="Black" Direction="270" BlurRadius="$BlurRadius" ShadowDepth="$ShadowDepth" Opacity="0.6" />
@@ -268,8 +218,6 @@ Function New-WPFMessageBox {
                     <TextBox Name="TitleBar" IsReadOnly="True" IsHitTestVisible="False" Text="$Title" Padding="10" FontFamily="$($PSBoundParameters.FontFamily)" FontSize="48" Foreground="$($PSBoundParameters.TitleTextForeground)" FontWeight="$($PSBoundParameters.TitleFontWeight)" Background="$($PSBoundParameters.TitleBackground)" HorizontalAlignment="Stretch" VerticalAlignment="Center" Width="Auto" HorizontalContentAlignment="Center" BorderThickness="0"/>
                     <DockPanel Name="ContentHost" Margin="1280,710,1280,710"  >
                     </DockPanel>
-                    <DockPanel Name="ButtonHost" LastChildFill="False" HorizontalAlignment="Center" >
-                    </DockPanel>
                 </StackPanel>
             </Grid>
         </Grid>
@@ -277,84 +225,42 @@ Function New-WPFMessageBox {
 </Window>
 "@
 
-        [XML]$ButtonXaml = @"
-<Button xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Width="Auto" Height="30" FontFamily="Segui" FontSize="32" Background="Transparent" Foreground="White" BorderThickness="1" Margin="10" Padding="20,0,20,0" HorizontalAlignment="Right" Cursor="Hand"/>
-"@
-
-        [XML]$ButtonTextXaml = @"
-<TextBlock xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" FontFamily="$($PSBoundParameters.FontFamily)" FontSize="32" Background="Transparent" Foreground="$($PSBoundParameters.ButtonTextForeground)" Padding="20,5,20,5" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-"@
-
         [XML]$ContentTextXaml = @"
 <TextBlock xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Text="$Content" Foreground="$($PSBoundParameters.ContentTextForeground)" DockPanel.Dock="Right" HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="$($PSBoundParameters.FontFamily)" FontSize="32" FontWeight="$($PSBoundParameters.ContentFontWeight)" TextWrapping="Wrap" Height="Auto" MaxWidth="500" MinWidth="50" Padding="10"/>
 "@
 
+    # Helper functions to modify window style
+        function Get-WindowLong {
+            param (
+                [Parameter(Mandatory=$true)]
+                [IntPtr]$hwnd,
+                [Parameter(Mandatory=$true)]
+                [int]$nIndex
+            )
+            return [System.Runtime.InteropServices.Marshal]::GetLastWin32Error()
+        }
+
+        function Set-WindowLong {
+            param (
+                [Parameter(Mandatory=$true)]
+                [IntPtr]$hwnd,
+                [Parameter(Mandatory=$true)]
+                [int]$nIndex,
+                [Parameter(Mandatory=$true)]
+                [int]$dwNewLong
+            )
+            return [System.Runtime.InteropServices.Marshal]::GetLastWin32Error()
+        }
         # Load the window from XAML
         $Window = [Windows.Markup.XamlReader]::Load((New-Object -TypeName System.Xml.XmlNodeReader -ArgumentList $xaml))
+        
+        # Disable moving the window
+        $window.Add_Loaded({
+            $hwnd = [System.Windows.Interop.WindowInteropHelper]::new($window).Handle
+            $style = Get-WindowLong $hwnd -20
+            Set-WindowLong $hwnd -20 ($style -bor 0x00000080)
+        })
 
-        # Custom function to add a button
-        Function Add-Button {
-            Param($Content)
-            $Button = [Windows.Markup.XamlReader]::Load((New-Object -TypeName System.Xml.XmlNodeReader -ArgumentList $ButtonXaml))
-            $ButtonText = [Windows.Markup.XamlReader]::Load((New-Object -TypeName System.Xml.XmlNodeReader -ArgumentList $ButtonTextXaml))
-            $ButtonText.Text = "$Content"
-            $Button.Content = $ButtonText
-            $Button.Add_MouseEnter({
-                    $This.Content.FontSize = "17"
-                })
-            $Button.Add_MouseLeave({
-                    $This.Content.FontSize = "16"
-                })
-            $Button.Add_Click({
-                    New-Variable -Name WPFMessageBoxOutput -Value $($This.Content.Text) -Option ReadOnly -Scope Script -Force
-                    $Window.Close()
-                })
-            $Window.FindName('ButtonHost').AddChild($Button)
-        }
-
-        # Add buttons
-        If ($ButtonType -eq "OK") {
-            Add-Button -Content "OK"
-        }
-
-        If ($ButtonType -eq "OK-Cancel") {
-            Add-Button -Content "OK"
-            Add-Button -Content "Cancel"
-        }
-
-        If ($ButtonType -eq "Abort-Retry-Ignore") {
-            Add-Button -Content "Abort"
-            Add-Button -Content "Retry"
-            Add-Button -Content "Ignore"
-        }
-
-        If ($ButtonType -eq "Yes-No-Cancel") {
-            Add-Button -Content "Yes"
-            Add-Button -Content "No"
-            Add-Button -Content "Cancel"
-        }
-
-        If ($ButtonType -eq "Yes-No") {
-            Add-Button -Content "Yes"
-            Add-Button -Content "No"
-        }
-
-        If ($ButtonType -eq "Retry-Cancel") {
-            Add-Button -Content "Retry"
-            Add-Button -Content "Cancel"
-        }
-
-        If ($ButtonType -eq "Cancel-TryAgain-Continue") {
-            Add-Button -Content "Cancel"
-            Add-Button -Content "TryAgain"
-            Add-Button -Content "Continue"
-        }
-
-        If ($ButtonType -eq "None" -and $CustomButtons) {
-            Foreach ($CustomButton in $CustomButtons) {
-                Add-Button -Content "$CustomButton"
-            }
-        }
 
         # Remove the title bar if no title is provided
         If ($Title -eq "") {
@@ -382,11 +288,6 @@ Function New-WPFMessageBox {
                 $_
             }        
         }
-
-        # Enable window to move when dragged
-        $Window.FindName('Grid').Add_MouseLeftButtonDown({
-                $Window.DragMove()
-            })
 
         # Activate the window on loading
         If ($OnLoaded) {
@@ -442,17 +343,6 @@ Function New-WPFMessageBox {
             $DispatcherTimer.Start()
         }
 
-        # Play a sound
-        If ($($PSBoundParameters.Sound)) {
-            $SoundFile = "$env:SystemDrive\Windows\Media\$($PSBoundParameters.Sound).wav"
-            $SoundPlayer = New-Object System.Media.SoundPlayer -ArgumentList $SoundFile
-            $SoundPlayer.Add_LoadCompleted({
-                    $This.Play()
-                    $This.Dispose()
-                })
-            $SoundPlayer.LoadAsync()
-        }
-
         # Display the window
         $null = $window.Dispatcher.InvokeAsync{ $window.ShowDialog() }.Wait()
 
@@ -466,20 +356,21 @@ Function New-WPFMessageBox {
 # THIS WILL COPY THE FILES NEEDED TO EXECUTE INTO AN APPDATA DIRECTORY TO BE THEN EXECUTED VIA SCHEDULED TASKS FOR REBOOTS FROM THE REGISTRY RUN KEY
 $workingDir = "$($env:APPDATA)\custom\LIMITER"
 if (!(Test-Path($workingDir))) {
-    New-Item -Path $env:APPDATA -ItemType Directory -Name "custom\LIMITER"
-    Copy-Item -Path "C:\Users\s4tAnonymous\source\repos\ChildSafetyScreenTimeLimiter\ChildSafetyScreenTimeLimiter.cmd", "C:\Users\s4tAnonymous\source\repos\ChildSafetyScreenTimeLimiter\ChildSafetyScreenTimeLimiter.ps1", `
-        "C:\Users\s4tAnonymous\source\repos\ChildSafetyScreenTimeLimiter\WAKEUP-MESSAGE.txt" -Destination $workingDir
+   New-Item -Path $env:APPDATA -ItemType Directory -Name "custom\LIMITER"
+   Copy-Item -Path ".\ChildSafetyScreenTimeLimiter.cmd", ".\ChildSafetyScreenTimeLimiter.ps1", ".\WAKEUP-MESSAGE.txt" -Destination $workingDir
+   Write-Host "would be creating folder location and copying the scripts to that safe location to be executed"
 }
 
 $wakeUpMessageFileLocation = "$($workingDir)\WAKEUP-MESSAGE.txt"
-$regRunAddFullPath = "Computer\HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Run"
+$regRunAddFullPath = "HKLM:SOFTWARE\Microsoft\Windows\CurrentVersion\Run"
 $Name = "LimiterScript"
 # EXAMPLE OF VALUE
 $runthis = "$($workingDir)\ChildSafetyScreenTimeLimiter.cmd"
 IF(!(Test-Path $regRunAddFullPath)) {
-    New-Item -Path $regRunAddFullPath -Force | Out-Null
+   New-Item -Path $regRunAddFullPath -Force | Out-Null
 }
 
+Write-Host "would be creating reg key and giving it value to execute script..."
 New-ItemProperty -Path $regRunAddFullPath -Name $Name -Value $runthis -PropertyType DWORD -Force | Out-Null
 
 <# 
@@ -498,7 +389,6 @@ New-ItemProperty -Path $regRunAddFullPath -Name $Name -Value $runthis -PropertyT
     CUSTOM VARIABLES END HERE 
 #>
 
-# CREATE TASK THAT WILL OPEN NOTEPAD FILE BUT THIS IS MOSTLY DONE TO FORCE THE PC TO WAKE FROM SUSPEND STATE
 if ($null -ne (Get-ScheduledTask -TaskName "WakeUpTask" -ErrorAction SilentlyContinue)) {
     Write-Host "unregister scheduled task WakeUpTask so can create a new one"
     Unregister-ScheduledTask -TaskName "WakeUpTask" -Confirm:$false
@@ -516,16 +406,17 @@ if (($timeNow -gt "23:30:00") -or ($wakeTime -gt "23:30:00")) {
 else {
     $actualWakeTime = $timeNow.AddHours($lengthBreakTimeDefault)
 }
-# CREATE SCHEDULED TASK TO OPEN TEXT FILE AS A MESSAGE USING THAT BASICALLY AS THE EXCUSE TO USE THE SCHEDULED TASK TO WAKE THE PC FROM SUSPEND STATE
-$action = New-ScheduledTaskAction -Execute 'notepad.exe' -Argument $wakeUpMessageFileLocation
-$trigger = New-ScheduledTaskTrigger -At $actualWakeTime
-$principal = New-ScheduledTaskPrincipal -UserID "NT AUTHORITY\SYSTEM" -LogonType ServiceAccount -RunLevel Highest
-$settings = New-ScheduledTaskSettingsSet -WakeToRun
-Register-ScheduledTask -TaskName "WakeUpTask" -Action $action -Trigger $trigger -Settings $settings -Principal $principal    
 
-$taskTrigger = New-ScheduledTaskTrigger -At $breakTimeStarts
-$taskAction = New-ScheduledTaskAction -Execute $runthis -WorkingDirectory $workingDir
-Register-ScheduledTask 'breakTimeStartsTask' -Action $taskAction -Trigger $taskTrigger
+# CREATE SCHEDULED TASK TO OPEN TEXT FILE AS A MESSAGE USING THAT BASICALLY AS THE EXCUSE TO USE THE SCHEDULED TASK TO WAKE THE PC FROM SUSPEND STATE
+$action = new-scheduledtaskaction -execute 'notepad.exe' -argument $wakeupmessagefilelocation
+$trigger = new-scheduledtasktrigger -at $actualwaketime
+$principal = new-scheduledtaskprincipal -userid "nt authority\system" -logontype serviceaccount -runlevel highest
+$settings = new-scheduledtasksettingsset -waketorun
+register-scheduledtask -taskname "wakeuptask" -action $action -trigger $trigger -settings $settings -principal $principal    
+
+$tasktrigger = new-scheduledtasktrigger -at $breaktimestarts
+$taskaction = new-scheduledtaskaction -execute $runthis -Argument "-a" -workingdirectory $workingdir
+register-scheduledtask 'breaktimestartstask' -action $taskaction -trigger $tasktrigger
 
 try {
     # enable auto-hide the taskbar
@@ -558,7 +449,7 @@ New-WPFMessageBox @Params
 try {
     # disable auto-hide the taskbar
     $p = 'HKCU:SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StuckRects3'; $v = (Get-ItemProperty -Path $p).Settings; $v[8] = 2; `
-        &Set-ItemProperty -Path $p -Name Settings -Value $v; &Stop-Process -f -ProcessName explorer    
+        &Set-ItemProperty -Path $p -Name Settings -Value $v; &Stop-Process -f -ProcessName explorer
 }
 catch {
     Write-Debug $Error.ToString()
@@ -567,6 +458,7 @@ catch {
     
 try {
     Add-Type -Assembly System.Windows.Forms
+    Write-Host "PC would go to sleep now..."
     [System.Windows.Forms.Application]::SetSuspendState("Suspend", $false, $true)
 }
 catch {
