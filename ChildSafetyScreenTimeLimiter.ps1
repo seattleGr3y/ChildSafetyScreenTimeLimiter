@@ -1,8 +1,17 @@
+[CmdletBinding()]
+param (
+    [Parameter()]
+    [switch]
+    $breakTimeWarning,
+    [Parameter()]
+    [switch]
+    $breakTimeStart
+)
+
 <#
     THIS FUNCTION EXISTS ONLY TO CREATE AND DISPLAY THE MESSAGEBOX
     THIS CAN AND SHOULD BE SIMPLIFIED FOR THIS USAGE I WILL DO THAT LATER
 #>
-
 Function New-WPFMessageBox {
 
     # For examples for use, see my blog:
@@ -229,12 +238,12 @@ Function New-WPFMessageBox {
 <TextBlock xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Text="$Content" Foreground="$($PSBoundParameters.ContentTextForeground)" DockPanel.Dock="Right" HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="$($PSBoundParameters.FontFamily)" FontSize="32" FontWeight="$($PSBoundParameters.ContentFontWeight)" TextWrapping="Wrap" Height="Auto" MaxWidth="500" MinWidth="50" Padding="10"/>
 "@
 
-    # Helper functions to modify window style
+        # Helper functions to modify window style
         function Get-WindowLong {
             param (
-                [Parameter(Mandatory=$true)]
+                [Parameter(Mandatory = $true)]
                 [IntPtr]$hwnd,
-                [Parameter(Mandatory=$true)]
+                [Parameter(Mandatory = $true)]
                 [int]$nIndex
             )
             return [System.Runtime.InteropServices.Marshal]::GetLastWin32Error()
@@ -242,11 +251,11 @@ Function New-WPFMessageBox {
 
         function Set-WindowLong {
             param (
-                [Parameter(Mandatory=$true)]
+                [Parameter(Mandatory = $true)]
                 [IntPtr]$hwnd,
-                [Parameter(Mandatory=$true)]
+                [Parameter(Mandatory = $true)]
                 [int]$nIndex,
-                [Parameter(Mandatory=$true)]
+                [Parameter(Mandatory = $true)]
                 [int]$dwNewLong
             )
             return [System.Runtime.InteropServices.Marshal]::GetLastWin32Error()
@@ -256,10 +265,10 @@ Function New-WPFMessageBox {
         
         # Disable moving the window
         $window.Add_Loaded({
-            $hwnd = [System.Windows.Interop.WindowInteropHelper]::new($window).Handle
-            $style = Get-WindowLong $hwnd -20
-            Set-WindowLong $hwnd -20 ($style -bor 0x00000080)
-        })
+                $hwnd = [System.Windows.Interop.WindowInteropHelper]::new($window).Handle
+                $style = Get-WindowLong $hwnd -20
+                Set-WindowLong $hwnd -20 ($style -bor 0x00000080)
+            })
 
 
         # Remove the title bar if no title is provided
@@ -353,115 +362,89 @@ Function New-WPFMessageBox {
     END OF MESSAGE BOX FUNCTION
 #>
 
-# THIS WILL COPY THE FILES NEEDED TO EXECUTE INTO AN APPDATA DIRECTORY TO BE THEN EXECUTED VIA SCHEDULED TASKS FOR REBOOTS FROM THE REGISTRY RUN KEY
-$workingDir = "$($env:APPDATA)\custom\LIMITER"
-if (!(Test-Path($workingDir))) {
-   New-Item -Path $env:APPDATA -ItemType Directory -Name "custom\LIMITER"
-   Copy-Item -Path ".\ChildSafetyScreenTimeLimiter.cmd", ".\ChildSafetyScreenTimeLimiter.ps1", ".\WAKEUP-MESSAGE.txt" -Destination $workingDir
-   Write-Host "would be creating folder location and copying the scripts to that safe location to be executed"
-}
-
-$wakeUpMessageFileLocation = "$($workingDir)\WAKEUP-MESSAGE.txt"
-$regRunAddFullPath = "HKLM:SOFTWARE\Microsoft\Windows\CurrentVersion\Run"
-$Name = "LimiterScript"
-# EXAMPLE OF VALUE
-$runthis = "$($workingDir)\ChildSafetyScreenTimeLimiter.cmd"
-IF(!(Test-Path $regRunAddFullPath)) {
-   New-Item -Path $regRunAddFullPath -Force | Out-Null
-}
-
-Write-Host "would be creating reg key and giving it value to execute script..."
-New-ItemProperty -Path $regRunAddFullPath -Name $Name -Value $runthis -PropertyType DWORD -Force | Out-Null
-
-<# 
-    CUSTOM VARIABLES START HERE 
-#>
-[int]$messageBoxTimeout = 30
-[int]$lengthBreakTimeDefault = 2
-[int]$lengthTimeTillNextBreakStarts = 4
-[int]$lengthBreakTimeOvernite = 8
-# GET CURRENT TIME TO CALCULATE WHEN TO WAKE PC FROM SUSPEND STATE
-[datetime]$timeNow = Get-Date
-[datetime]$actualWakeTime = $timeNow.AddHours($lengthBreakTimeDefault)
-[datetime]$wakeTime = $timeNow.AddHours($lengthBreakTimeDefault)
-[datetime]$breakTimeStarts = $timeNow.AddHours($lengthTimeTillNextBreakStarts)
-<# 
-    CUSTOM VARIABLES END HERE 
-#>
-
-if ($null -ne (Get-ScheduledTask -TaskName "WakeUpTask" -ErrorAction SilentlyContinue)) {
-    Write-Host "unregister scheduled task WakeUpTask so can create a new one"
-    Unregister-ScheduledTask -TaskName "WakeUpTask" -Confirm:$false
-}
-
-if ($null -ne (Get-ScheduledTask -TaskName "BreakTimeTask" -ErrorAction SilentlyContinue)) {
-    Write-Host "unregister scheduled task BreakTimeTask so can create a new one"
-    Unregister-ScheduledTask -TaskName "BreakTimeTask" -Confirm:$false
-}
-
-if (($timeNow -gt "23:30:00") -or ($wakeTime -gt "23:30:00")) {
-    $actualWakeTime = $timeNow.AddHours($lengthBreakTimeOvernite)
-}
-
-else {
-    $actualWakeTime = $timeNow.AddHours($lengthBreakTimeDefault)
-}
-
-# CREATE SCHEDULED TASK TO OPEN TEXT FILE AS A MESSAGE USING THAT BASICALLY AS THE EXCUSE TO USE THE SCHEDULED TASK TO WAKE THE PC FROM SUSPEND STATE
-$action = new-scheduledtaskaction -execute 'notepad.exe' -argument $wakeupmessagefilelocation
-$trigger = new-scheduledtasktrigger -at $actualwaketime
-$principal = new-scheduledtaskprincipal -userid "nt authority\system" -logontype serviceaccount -runlevel highest
-$settings = new-scheduledtasksettingsset -waketorun
-register-scheduledtask -taskname "wakeuptask" -action $action -trigger $trigger -settings $settings -principal $principal    
-
-$tasktrigger = new-scheduledtasktrigger -at $breaktimestarts
-$taskaction = new-scheduledtaskaction -execute $runthis -Argument "-a" -workingdirectory $workingdir
-register-scheduledtask 'breaktimestartstask' -action $taskaction -trigger $tasktrigger
-
-try {
-    # enable auto-hide the taskbar
-    Read-Host "auto-hide taskbar next"
-    $p = 'HKCU:SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StuckRects3'; $v = (Get-ItemProperty -Path $p).Settings; $v[8] = 3; `
-        &Set-ItemProperty -Path $p -Name Settings -Value $v; &Stop-Process -f -ProcessName explorer
-}
-catch {
-    Write-Debug $Error.ToString()
-    Read-Host
-}
-
-Read-Host "open the message box next"
-$Content = "YOU CAN RETURN TO USE THE COMPUTER IN 2 HOURS YOU WILL SEE THIS MESSAGE FOR 30 SECONDS AND THE COMPUTER WILL SAFELY GO TO SLEEP FOR 2 HOURS"
- 
-$Params = @{
-    Content             = $Content
-    Title               = " BREAK TIME IS NOW "
-    TitleFontSize       = 30
-    TitleTextForeground = 'Red'
-    TitleFontWeight     = 'Bold'
-    TitleBackground     = 'Silver'
-    FontFamily          = 'Lucida Console'
-    Timeout             = $messageBoxTimeout
-}
-
-# message box pop-up on timer to close
-New-WPFMessageBox @Params
-
-try {
-    # disable auto-hide the taskbar
-    $p = 'HKCU:SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StuckRects3'; $v = (Get-ItemProperty -Path $p).Settings; $v[8] = 2; `
-        &Set-ItemProperty -Path $p -Name Settings -Value $v; &Stop-Process -f -ProcessName explorer
-}
-catch {
-    Write-Debug $Error.ToString()
-    Read-Host
-}
+## THIS IS THE PART OF THS SCRIPT THAT WILL BE RUN BE THE BREAK TIME WARNING
+##
+if ($breakTimeWarning) {
+    $Content = "IN 15 MINUTES THE COMPUTER WILL SAFELY GO TO SLEEP FOR 2 HOURS | THIS MESSAGE WILL AUTOMATICALLY DISAPPEAR IN 10 SECONDS"
     
-try {
-    Add-Type -Assembly System.Windows.Forms
-    Write-Host "PC would go to sleep now..."
-    [System.Windows.Forms.Application]::SetSuspendState("Suspend", $false, $true)
+    $Params = @{
+        Content             = $Content
+        Title               = " BREAK TIME IS IN 15 MINUTES "
+        TitleFontSize       = 30
+        TitleTextForeground = 'Red'
+        TitleFontWeight     = 'Bold'
+        TitleBackground     = 'Silver'
+        FontFamily          = 'Lucida Console'
+        Timeout             = 10
+    }
+
+    # message box pop-up on timer to close
+    New-WPFMessageBox @Params
+
+    try {
+        # disable auto-hide the taskbar
+        $p = 'HKCU:SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StuckRects3'; $v = (Get-ItemProperty -Path $p).Settings; $v[8] = 2; `
+            &Set-ItemProperty -Path $p -Name Settings -Value $v; &Stop-Process -f -ProcessName explorer
+    }
+    catch {
+        Write-Debug $Error.ToString()
+    }
+    try {
+        Add-Type -Assembly System.Windows.Forms
+        [System.Windows.Forms.Application]::SetSuspendState("Suspend", $false, $true)
+    }
+    catch {
+        Write-Debug $Error.ToString()
+    }
 }
-catch {
-    Write-Debug $Error.ToString()
-    Read-Host
+##
+## BREAK TIME WARNING CODE CHUNK ENDS HERE
+
+## THIS IS THE PART OF THS SCRIPT THAT WILL BE THE BREAK TIME START
+##
+if ($breakTimeStart) {
+    try {
+        # enable auto-hide the taskbar
+        $p = 'HKCU:SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StuckRects3'; $v = (Get-ItemProperty -Path $p).Settings; $v[8] = 3; `
+            & Set-ItemProperty -Path $p -Name Settings -Value $v; &Stop-Process -f -ProcessName explorer
+    }
+    catch {
+        Write-Debug $Error.ToString()
+    }
+
+    Read-Host "open the message box next"
+    $Content = "YOU CAN RETURN TO USE THE COMPUTER IN 2 HOURS YOU WILL SEE THIS MESSAGE FOR 30 SECONDS AND THE COMPUTER WILL SAFELY GO TO SLEEP FOR 2 HOURS"
+        
+    $Params = @{
+        Content             = $Content
+        Title               = " BREAK TIME IS NOW "
+        TitleFontSize       = 30
+        TitleTextForeground = 'Red'
+        TitleFontWeight     = 'Bold'
+        TitleBackground     = 'Silver'
+        FontFamily          = 'Lucida Console'
+        Timeout             = 30
+    }
+
+    # message box pop-up on timer to close
+    New-WPFMessageBox @Params
+
+    try {
+        # disable auto-hide the taskbar
+        $p = 'HKCU:SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\StuckRects3'; $v = (Get-ItemProperty -Path $p).Settings; $v[8] = 2; `
+            &Set-ItemProperty -Path $p -Name Settings -Value $v; &Stop-Process -f -ProcessName explorer
+    }
+    catch {
+        Write-Debug $Error.ToString()
+    }
+            
+    try {
+        Add-Type -Assembly System.Windows.Forms
+        [System.Windows.Forms.Application]::SetSuspendState("Suspend", $false, $true)
+    }
+    catch {
+        Write-Debug $Error.ToString()
+    }
 }
+##
+## BREAK TIME STARTS CODE CHUNK ENDS HERE
