@@ -18,9 +18,13 @@ $runthis = "$($workingDir)\ChildSafetyScreenTimeLimiter.cmd"
 $wakeUpMessageFileLocation = "$($workingDir)\WAKEUP-MESSAGE.txt"
 # GET CURRENT TIME TO CALCULATE WHEN TO WAKE PC FROM SUSPEND STATE
 [datetime]$timeNow = Get-Date
+[datetime]$timeNowHours = $timeNow.TimeOfDay
+$timeNowHours
 [datetime]$actualWakeTime = $timeNow.AddHours($lengthBreakTimeDefault)
 [datetime]$wakeTime = $timeNow.AddHours($lengthBreakTimeDefault)
-[datetime]$breakTimeWarning = $timeNow.AddHours($lengthTimeTillNextBreakStarts.AddHours(1 - 1.25))
+# this will add 4 hours and subtract 15 minutes so the timing for the warning will appear
+# 15 minutes before the PC will enter sleep
+[datetime]$breakTimeWarning = $timeNow.AddHours($lengthTimeTillNextBreakStarts).AddHours(1 - 1.25)
 [datetime]$breakTimeStarts = $timeNow.AddHours($lengthTimeTillNextBreakStarts)
 
 <# 
@@ -44,10 +48,25 @@ if ($null -ne (Get-ScheduledTask -TaskName "breakTimeWarningtask" -ErrorAction S
 }
 
 # GET THE CURRENT TIME TO DETERMINE IF THIS IS A LATE TIME OF DAY AND SHOULD SLEEP UNTIL MORNING OR NOT
-if (($timeNow -gt "22:00:00") -or ($wakeTime -gt "22:30:00")) {
-    $actualWakeTime = $timeNow.AddHours($lengthBreakTimeOvernite)
-} else {
-    $actualWakeTime = $timeNow.AddHours($lengthBreakTimeDefault)
+if ((Get-Date).DayOfWeek -eq "Friday" -or (Get-Date).DayOfWeek -eq "Saturday" ) {
+    if (((Get-Date).Hour -eq 23)) {
+        $actualWakeTime = $timeNow.AddHours($lengthBreakTimeOvernite)
+        Write-Host $("time to set the scheduled task to wake the PC $($actualWakeTime)") -ForegroundColor Cyan
+    }
+    else {
+        $actualWakeTime = $timeNow.AddHours($lengthBreakTimeDefault)
+        Write-Host $("time to set the scheduled task to wake the PC $($actualWakeTime)") -ForegroundColor Green
+    }
+}
+else {
+    if (((Get-Date).Hour -gt 20) -or (($wakeTime.Hour -gt 21))) {
+        $actualWakeTime = $timeNow.AddHours($lengthBreakTimeOvernite)
+        Write-Host $("time to set the scheduled task to wake the PC $($actualWakeTime)") -ForegroundColor Yellow
+    }
+    else {
+        $actualWakeTime = $timeNow.AddHours($lengthBreakTimeDefault)
+        Write-Host $("time to set the scheduled task to wake the PC $($actualWakeTime)") -ForegroundColor Magenta
+    }
 }
 
 # CREATE SCHEDULED TASK TO OPEN TEXT FILE AS A MESSAGE USING THAT BASICALLY AS THE EXCUSE TO USE THE SCHEDULED TASK TO WAKE THE PC FROM SUSPEND STATE
