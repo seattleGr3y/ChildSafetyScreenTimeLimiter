@@ -11,8 +11,8 @@ if (!(Test-Path($workingDir))) {
 <# 
     CUSTOM VARIABLES START HERE 
 #>
-[int]$lengthBreakTimeDefault = 2
-[int]$lengthTimeTillNextBreakStarts = 4
+[int]$lengthBreakTimeDefault = 3
+[int]$lengthTimeTillNextBreakStarts = 3
 [int]$lengthBreakTimeOvernite = 8
 $runthis = "$($workingDir)\ChildSafetyScreenTimeLimiter.cmd"
 $wakeUpMessageFileLocation = "$($workingDir)\WAKEUP-MESSAGE.txt"
@@ -24,7 +24,7 @@ $timeNowHours
 [datetime]$wakeTime = $timeNow.AddHours($lengthBreakTimeDefault)
 # this will add 4 hours and subtract 15 minutes so the timing for the warning will appear
 # 15 minutes before the PC will enter sleep
-[datetime]$breakTimeWarning = $timeNow.AddHours($lengthTimeTillNextBreakStarts).AddHours(1 - 1.25)
+[datetime]$breakTimeWarning = $timeNow.AddHours($lengthTimeTillNextBreakStarts).AddHours(-.25)
 [datetime]$breakTimeStarts = $timeNow.AddHours($lengthTimeTillNextBreakStarts)
 
 <# 
